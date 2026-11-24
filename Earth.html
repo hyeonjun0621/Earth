@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Earth</title>
+</head>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+// 입력 변수 선언
+attribute vec4 vPosition;
+attribute vec4 vNormal;
+attribute vec4 vColor;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat3 normalMatrix;
+uniform vec4 lightPosition;
+
+// 출력 변수 선언
+varying vec3 N, L, E;
+varying vec4 fColor;
+
+void main()
+{
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+
+    if (lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+    else L = normalize(lightPosition.xyz - pos);
+
+    E = -normalize(pos);
+    N = normalize(normalMatrix * vNormal.xyz);
+    fColor = vColor;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+}
+</script>
+
+<!-- 프래그먼트 셰이더 -->
+<script id="fragment-shader" type="x-shader/x-fragment">
+// 정밀도와 변수 선언 
+precision mediump float;
+
+uniform vec4 lightAmbient;
+uniform vec4 lightDiffuse;
+uniform vec4 lightSpecular;
+uniform float shininess;
+varying vec3 N, L, E;
+varying vec4 fColor;
+
+void main()
+{
+    // 벡터 정규화
+    vec3 n = normalize(N);
+    vec3 l = normalize(L);
+    vec3 e = normalize(E);
+    vec3 H = normalize(l + e);
+
+    // 주변광
+    vec4 ambient = lightAmbient * fColor;
+
+    // 확산광
+    float Kd = max(dot(l, n), 0.0);
+    vec4 diffuse = Kd * lightDiffuse * fColor;
+
+    // 정반사광 
+    float Ks = pow(max(dot(n, H), 0.0), shininess);
+    vec4 specular = Ks * lightSpecular;
+    if (dot(l, n) < 0.0) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+    // 최종 색 결정 
+    gl_FragColor = vec4((ambient + diffuse + specular).rgb, 1.0);
+}
+</script>
+<!-- 공통 라이브러리 추가 -->
+<script type="text/javascript" src="Common/webgl-utils.js"></script>
+<script type="text/javascript" src="Common/initShaders.js"></script>
+<script type="text/javascript" src="Common/MV.js"></script>
+<!-- JS 파일 및 데이터 추가 -->
+<script type="text/javascript" src="earthData.js"></script>
+<script type="text/javascript" src="Earth.js"></script>
+
+<body>
+<canvas id="gl-canvas" width="800" height="800">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
